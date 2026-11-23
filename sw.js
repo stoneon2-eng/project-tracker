@@ -1,5 +1,5 @@
 /* 프로젝트 노트 - 오프라인 캐시 (network-first, 캐시 폴백) */
-var CACHE = 'project-note-v1';
+var CACHE = 'project-note-v2';
 var ASSETS = ['./', 'index.html', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'];
 
 self.addEventListener('install', function (e) {
@@ -14,7 +14,12 @@ self.addEventListener('activate', function (e) {
 
 self.addEventListener('fetch', function (e) {
   var req = e.request;
-  if (req.method !== 'GET' || new URL(req.url).origin !== location.origin) { return; }
+  if (req.method !== 'GET') { return; }
+  var url;
+  try { url = new URL(req.url); } catch (err) { return; }
+  /* GitHub API(동기화)는 캐시하지 않고 항상 네트워크로 보낸다 */
+  if (url.hostname === 'api.github.com' || url.hostname === 'github.com' || url.hostname === 'raw.githubusercontent.com') { return; }
+  if (url.origin !== location.origin) { return; }
   if (req.url.indexOf('projects-data.json') !== -1) { return; }
   e.respondWith(
     fetch(req).then(function (res) {

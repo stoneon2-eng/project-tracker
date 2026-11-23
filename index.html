@@ -132,6 +132,30 @@ svg{display:block}
 .icon-btn:active{transform:scale(.94)}
 .icon-btn svg{width:20px;height:20px}
 .icon-btn.sun{font-size:18px;line-height:1}
+/* ---------- sync chip ---------- */
+.sync-chip{
+  display:inline-flex;align-items:center;gap:5px;height:30px;padding:0 10px;
+  border-radius:99px;border:1px solid var(--line);background:var(--surface);
+  font-size:11px;font-weight:750;letter-spacing:-.02em;color:var(--text-3);
+  box-shadow:var(--shadow-xs);white-space:nowrap;flex:0 0 auto;
+  transition:background .15s ease,color .15s ease,transform .12s ease;
+}
+.sync-chip:active{transform:scale(.95)}
+.sync-dot{width:6px;height:6px;border-radius:50%;background:currentColor;flex:0 0 auto;opacity:.75}
+.sync-chip.is-idle{color:var(--accent-strong);border-color:transparent;background:var(--accent-soft)}
+.sync-chip.is-busy{color:var(--accent-strong);border-color:transparent;background:var(--accent-soft)}
+.sync-chip.is-busy .sync-dot{animation:syncpulse .9s ease-in-out infinite;opacity:1}
+.sync-chip.is-ok{color:var(--green);border-color:transparent;background:var(--green-soft)}
+.sync-chip.is-ok .sync-dot{opacity:1}
+.sync-chip.is-err{color:var(--danger);border-color:transparent;background:var(--danger-soft)}
+.sync-chip.is-err .sync-dot{opacity:1}
+.sync-chip.is-offline{color:var(--text-2)}
+@keyframes syncpulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(.75)}}
+@media (max-width:359px){
+  .sync-chip{padding:0 8px}
+  .sync-chip #syncLabel{display:none}
+  .appbar-inner{gap:8px}
+}
 /* ---------- layout ---------- */
 .app{max-width:680px;margin:0 auto;padding:8px 18px calc(112px + var(--safe-bot))}
 /* ---------- briefing banner ---------- */
@@ -525,6 +549,26 @@ input[type="date"]{font-size:15px}
 .bcard .chev{flex:0 0 auto;width:16px;height:16px;color:var(--text-3)}
 .brief-foot{padding:10px 16px calc(14px + var(--safe-bot));border-top:1px solid var(--line);background:var(--surface)}
 .brief-foot .btn{width:100%;height:46px;background:var(--surface-2);border:1px solid var(--line);color:var(--text-2);font-size:14px}
+/* sync settings */
+.sync-intro{margin:4px 0 16px;font-size:12.5px;line-height:1.62;color:var(--text-2);word-break:keep-all}
+.sync-intro b{font-weight:750;color:var(--text)}
+.sync-hint{margin:-6px 0 14px;font-size:11.5px;line-height:1.6;color:var(--text-3);word-break:break-word}
+.sync-hint a{color:var(--accent-strong);font-weight:650;text-decoration:none}
+.input-with-btn{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:stretch}
+.input-with-btn input{min-width:0}
+.eye-btn{
+  min-width:56px;border-radius:13px;border:1px solid var(--line);background:var(--surface-2);
+  color:var(--text-2);font-size:12.5px;font-weight:700;
+}
+.sync-msg{
+  margin:2px 0 14px;padding:11px 13px;border-radius:13px;
+  background:var(--surface-2);border:1px solid var(--line);
+  font-size:12.5px;line-height:1.55;color:var(--text-2);word-break:keep-all;overflow-wrap:anywhere;
+}
+.sync-msg.is-ok{background:var(--green-soft);border-color:transparent;color:var(--green)}
+.sync-msg.is-err{background:var(--danger-soft);border-color:transparent;color:var(--danger)}
+.sync-actions{display:flex;flex-direction:column;gap:8px}
+.sync-actions .btn{width:100%;height:48px;font-size:14.5px}
 /* toast */
 .toast{
   position:fixed;left:50%;bottom:calc(94px + var(--safe-bot));z-index:80;
@@ -551,6 +595,9 @@ input[type="date"]{font-size:15px}
       <p class="appbar-sub" id="todayLabel"></p>
     </div>
     <div class="appbar-tools">
+      <button class="sync-chip is-off" id="syncChip" type="button" aria-label="동기화 상태: 미연결" title="동기화 설정">
+        <span class="sync-dot" aria-hidden="true"></span><span id="syncLabel">미연결</span>
+      </button>
       <button class="icon-btn sun" id="btnBrief" aria-label="아침 브리핑 보기" title="아침 브리핑">☀️</button>
       <button class="icon-btn" id="btnMore" aria-label="더보기 메뉴" aria-haspopup="dialog">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="5" cy="12" r="1.3" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.3" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1.3" fill="currentColor" stroke="none"/></svg>
@@ -738,6 +785,11 @@ input[type="date"]{font-size:15px}
         <span class="mi-text"><b>JSON 가져오기</b><small>projects-data.json 불러오기</small></span>
       </button>
       <div class="menu-sep"></div>
+      <button class="menu-item" data-act="sync">
+        <span class="mi-emoji" aria-hidden="true">☁️</span>
+        <span class="mi-text"><b>동기화 설정</b><small>GitHub 비공개 저장소에 자동 저장·불러오기</small></span>
+      </button>
+      <div class="menu-sep"></div>
       <button class="menu-item" data-act="sample">
         <span class="mi-emoji" aria-hidden="true">🌱</span>
         <span class="mi-text"><b>예시 프로젝트 넣기</b><small>사용법을 둘러보고 지울 수 있어요</small></span>
@@ -752,7 +804,50 @@ input[type="date"]{font-size:15px}
         <span class="mi-text"><b>모든 데이터 지우기</b><small>이 기기에 저장된 프로젝트 전부</small></span>
       </button>
     </div>
-    <p class="menu-note">모든 내용은 이 브라우저에만 저장돼요.<br>기기를 바꾸기 전에는 JSON으로 내보내 두세요.</p>
+    <p class="menu-note">내용은 이 브라우저에 먼저 저장되고, 동기화를 켜면 GitHub 비공개 저장소에도 함께 저장돼요.</p>
+  </div>
+</div>
+
+<!-- 동기화 설정 -->
+<div class="overlay" id="ovSync" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="syncTitle">
+    <div class="sheet-grip" aria-hidden="true"></div>
+    <div class="sheet-head">
+      <h2 id="syncTitle">동기화 설정</h2>
+      <button class="icon-btn" data-close aria-label="닫기">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <form class="form" id="syncForm" novalidate>
+      <p class="sync-intro">GitHub 비공개 저장소에 프로젝트를 자동으로 저장하고, 다른 기기에서도 같은 내용을 불러와요. 토큰은 <b>이 기기 브라우저에만</b> 저장되고 앱 파일에는 들어가지 않아요.</p>
+      <label class="field">
+        <span class="label">GitHub 토큰 <em>이 기기에만 저장</em></span>
+        <span class="input-with-btn">
+          <input id="syToken" type="password" autocomplete="off" spellcheck="false" placeholder="github_pat_..." enterkeyhint="next">
+          <button type="button" class="eye-btn" id="syEye" aria-label="토큰 보기">보기</button>
+        </span>
+      </label>
+      <p class="sync-hint">github.com/settings/personal-access-tokens 에서 해당 저장소만 고르고 <b>Contents: Read and write</b> 권한으로 만들어 주세요.</p>
+      <label class="field">
+        <span class="label">저장소 <em>owner/repo</em></span>
+        <input id="syRepo" type="text" autocomplete="off" spellcheck="false" placeholder="stoneon2-eng/project-tracker-data" enterkeyhint="next">
+      </label>
+      <div class="field-row">
+        <label class="field">
+          <span class="label">브랜치</span>
+          <input id="syBranch" type="text" autocomplete="off" spellcheck="false" placeholder="main" enterkeyhint="next">
+        </label>
+        <label class="field">
+          <span class="label">파일</span>
+          <input id="syPath" type="text" autocomplete="off" spellcheck="false" placeholder="projects-data.json" enterkeyhint="next">
+        </label>
+      </div>
+      <p class="sync-msg" id="syMsg" hidden></p>
+      <div class="form-actions sync-actions">
+        <button type="submit" class="btn btn-primary" id="syConnect">연결 테스트 &amp; 지금 동기화</button>
+        <button type="button" class="btn btn-ghost" id="syDisconnect">연결 해제</button>
+      </div>
+    </form>
   </div>
 </div>
 
@@ -1080,6 +1175,7 @@ input[type="date"]{font-size:15px}
     try {
       localStorage.setItem(KEY, JSON.stringify(payload));
       stampSaved();
+      if (!suppressPush) { queuePush(); }
       return true;
     } catch (e) {
       toast('자동 저장에 실패했어요. JSON으로 백업해 두세요.');
@@ -1092,6 +1188,442 @@ input[type="date"]{font-size:15px}
     el.textContent = '자동 저장 · ' + timeLabel(new Date());
     el.classList.add('pulse');
     setTimeout(function () { el.classList.remove('pulse'); }, 700);
+  }
+
+  /* ---------- GitHub sync ---------- */
+  var SYNC_KEY = 'stone.projectTracker.ghSync.v1';
+  var SYNC_DEFAULT_REPO = 'stoneon2-eng/project-tracker-data';
+  var SYNC_DEFAULT_BRANCH = 'main';
+  var SYNC_DEFAULT_PATH = 'projects-data.json';
+  var sync = {
+    token: '', repo: SYNC_DEFAULT_REPO, branch: SYNC_DEFAULT_BRANCH, path: SYNC_DEFAULT_PATH,
+    sha: '', lastSyncAt: '', lastError: '', tombstones: {}
+  };
+  var suppressPush = false;
+  var syncTimer = null;
+  var syncBusy = false;
+  var syncQueued = false;
+  var syncErrorNoticed = false;
+  var syncView = 'off';
+
+  function loadSyncConfig() {
+    var raw = null;
+    try { raw = localStorage.getItem(SYNC_KEY); } catch (e) { return; }
+    if (!raw) { return; }
+    var obj = null;
+    try { obj = JSON.parse(raw); } catch (e) { return; }
+    if (!obj || typeof obj !== 'object') { return; }
+    sync.token = typeof obj.token === 'string' ? obj.token.trim() : '';
+    sync.repo = toText(obj.repo) || SYNC_DEFAULT_REPO;
+    sync.branch = toText(obj.branch) || SYNC_DEFAULT_BRANCH;
+    sync.path = toText(obj.path) || SYNC_DEFAULT_PATH;
+    sync.sha = toText(obj.sha);
+    sync.lastSyncAt = validIso(obj.lastSyncAt) || '';
+    sync.lastError = toText(obj.lastError);
+    sync.tombstones = (obj.tombstones && typeof obj.tombstones === 'object') ? obj.tombstones : {};
+  }
+  function persistSync() {
+    try {
+      localStorage.setItem(SYNC_KEY, JSON.stringify({
+        token: sync.token, repo: sync.repo, branch: sync.branch, path: sync.path,
+        sha: sync.sha, lastSyncAt: sync.lastSyncAt, lastError: sync.lastError,
+        tombstones: sync.tombstones
+      }));
+    } catch (e) { /* 저장 실패는 조용히 */ }
+  }
+  function syncReady() { return !!(sync.token && sync.repo && sync.path); }
+  function syncLabelFor(view) {
+    if (view === 'busy') { return '동기화 중'; }
+    if (view === 'ok') { return '동기화됨'; }
+    if (view === 'err') { return '동기화 오류'; }
+    if (view === 'offline') { return '오프라인'; }
+    if (view === 'idle') { return '연결됨'; }
+    return '미연결';
+  }
+  function setSyncView(view) {
+    syncView = view;
+    var chip = $('syncChip');
+    if (chip) {
+      chip.className = 'sync-chip is-' + view;
+      chip.setAttribute('aria-label', '동기화 상태: ' + syncLabelFor(view));
+      var sub = sync.lastSyncAt ? ' · 마지막 ' + relTime(new Date(sync.lastSyncAt)) : '';
+      chip.setAttribute('title', syncReady() ? ('동기화 ' + syncLabelFor(view) + sub) : '눌러서 동기화 설정');
+    }
+    var label = $('syncLabel');
+    if (label) { label.textContent = syncLabelFor(view); }
+  }
+  function refreshSyncView() {
+    if (!syncReady()) { setSyncView('off'); return; }
+    if (syncView === 'busy') { return; }
+    if (sync.lastError) { setSyncView('err'); return; }
+    if (!navigator.onLine) { setSyncView('offline'); return; }
+    setSyncView(sync.lastSyncAt ? 'ok' : 'idle');
+  }
+  function markDeleted(id) {
+    if (!id) { return; }
+    sync.tombstones[id] = nowIso();
+    pruneTombstones();
+    persistSync();
+  }
+  function unmarkDeleted(id) {
+    if (id && sync.tombstones[id]) { delete sync.tombstones[id]; persistSync(); }
+  }
+  function pruneTombstones() {
+    var cutoff = Date.now() - 180 * DAY;
+    for (var id in sync.tombstones) {
+      if (!Object.prototype.hasOwnProperty.call(sync.tombstones, id)) { continue; }
+      var t = new Date(sync.tombstones[id]).getTime();
+      if (!t || t < cutoff) { delete sync.tombstones[id]; }
+    }
+  }
+
+  /* base64 <-> UTF-8 */
+  function utf8ToB64(text) {
+    var str = String(text == null ? '' : text);
+    if (typeof TextEncoder === 'function') {
+      var bytes = new TextEncoder().encode(str);
+      var bin = '';
+      var chunk = 0x8000;
+      for (var i = 0; i < bytes.length; i += chunk) {
+        bin += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+      }
+      return btoa(bin);
+    }
+    return btoa(unescape(encodeURIComponent(str)));
+  }
+  function b64ToUtf8(value) {
+    var clean = String(value == null ? '' : value).replace(/\s+/g, '');
+    if (!clean) { return ''; }
+    var bin;
+    try { bin = atob(clean); } catch (e) { return ''; }
+    if (typeof TextDecoder === 'function') {
+      var bytes = new Uint8Array(bin.length);
+      for (var i = 0; i < bin.length; i++) { bytes[i] = bin.charCodeAt(i); }
+      try { return new TextDecoder('utf-8').decode(bytes); } catch (e2) { return bin; }
+    }
+    try { return decodeURIComponent(escape(bin)); } catch (e3) { return bin; }
+  }
+
+  /* GitHub REST */
+  function ghContentUrl() {
+    var parts = String(sync.repo || '').split('/');
+    var owner = parts.shift() || '';
+    var name = parts.join('/');
+    var path = String(sync.path || '').split('/').filter(function (s) { return !!s; }).map(encodeURIComponent).join('/');
+    return 'https://api.github.com/repos/' + encodeURIComponent(owner) + '/' + encodeURIComponent(name) + '/contents/' + path;
+  }
+  function ghHeaders() {
+    return {
+      'Authorization': 'Bearer ' + sync.token,
+      'Accept': 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28'
+    };
+  }
+  function ghRequest(method, url, body) {
+    var opts = { method: method, headers: ghHeaders(), cache: 'no-store' };
+    if (body) {
+      opts.headers['Content-Type'] = 'application/json';
+      opts.body = JSON.stringify(body);
+    }
+    return fetch(url, opts).then(function (res) {
+      return res.text().then(function (text) {
+        var data = null;
+        try { data = text ? JSON.parse(text) : null; } catch (e) { data = null; }
+        return { ok: res.ok, status: res.status, data: data };
+      });
+    }, function () {
+      throw new Error('네트워크에 연결하지 못했어요. 오프라인인지 확인해 주세요.');
+    });
+  }
+  function syncErrorText(status) {
+    if (status === 401) { return 'GitHub 토큰이 올바르지 않아요. 토큰을 다시 확인해 주세요.'; }
+    if (status === 403) { return '권한이 없어요. 토큰에 그 저장소의 Contents 읽기·쓰기 권한이 있는지 확인해 주세요.'; }
+    if (status === 404) { return '저장소를 찾지 못했어요. 저장소 이름과 토큰 권한을 확인해 주세요.'; }
+    if (status === 409 || status === 422) { return '다른 곳에서 먼저 저장한 내용이 있어요. 다시 맞추지 못했어요.'; }
+    if (status === 429 || status >= 500) { return 'GitHub가 잠시 응답하지 않아요. 잠시 뒤 다시 시도해 주세요.'; }
+    return 'GitHub 요청이 실패했어요 (HTTP ' + status + ').';
+  }
+  function ghRead() {
+    var url = ghContentUrl() + '?ref=' + encodeURIComponent(sync.branch);
+    return ghRequest('GET', url).then(function (r) {
+      if (r.status === 404) { return { missing: true, sha: '', projects: [] }; }
+      if (!r.ok) { throw new Error(syncErrorText(r.status)); }
+      var d = r.data || {};
+      var text = d.content ? b64ToUtf8(d.content) : '';
+      var projects = [];
+      if (text) {
+        try { projects = normalizeProjects(JSON.parse(text)); } catch (e) { projects = []; }
+      }
+      return { missing: false, sha: d.sha || '', projects: projects };
+    });
+  }
+  function ghWrite(sha, message) {
+    var payload = JSON.stringify({ version: 1, savedAt: nowIso(), projects: state.projects }, null, 2);
+    var body = { message: message || '프로젝트 노트 동기화', content: utf8ToB64(payload), branch: sync.branch };
+    if (sha) { body.sha = sha; }
+    return ghRequest('PUT', ghContentUrl(), body);
+  }
+
+  /* merge by id + updatedAt, keep the newer version per project */
+  function projectTime(p) {
+    var t = new Date(p.updatedAt || p.createdAt || 0).getTime();
+    return isNaN(t) ? 0 : t;
+  }
+  function newerProject(a, b) {
+    var ta = projectTime(a);
+    var tb = projectTime(b);
+    if (ta !== tb) { return ta > tb; }
+    var ua = (a.updates && a.updates.length) || 0;
+    var ub = (b.updates && b.updates.length) || 0;
+    return ua > ub;
+  }
+  function dropTombstoned(list) {
+    var out = [];
+    for (var i = 0; i < list.length; i++) {
+      var p = list[i];
+      var stamp = sync.tombstones[p.id];
+      if (stamp) {
+        var died = new Date(stamp).getTime();
+        if (!died || died >= projectTime(p)) { continue; }
+        delete sync.tombstones[p.id];
+      }
+      out.push(p);
+    }
+    return out;
+  }
+  function mergeProjects(localList, remoteList) {
+    var byId = {};
+    var out = [];
+    function take(p) {
+      var cur = byId[p.id];
+      if (!cur) { byId[p.id] = p; out.push(p); return; }
+      if (newerProject(p, cur)) {
+        byId[p.id] = p;
+        for (var i = 0; i < out.length; i++) {
+          if (out[i].id === p.id) { out[i] = p; break; }
+        }
+      }
+    }
+    for (var i = 0; i < localList.length; i++) { take(localList[i]); }
+    for (var j = 0; j < remoteList.length; j++) { take(remoteList[j]); }
+    return dropTombstoned(out);
+  }
+  function signature(list) {
+    var parts = [];
+    for (var i = 0; i < list.length; i++) { parts.push(list[i].id + ':' + (list[i].updatedAt || '')); }
+    parts.sort();
+    return parts.join('|');
+  }
+
+  function pushNow(message) {
+    if (!syncReady()) { return Promise.resolve({ ok: false, error: '동기화가 설정되지 않았어요.' }); }
+    if (!navigator.onLine) {
+      setSyncView('offline');
+      return Promise.resolve({ ok: false, error: '오프라인 상태예요. 연결되면 자동으로 다시 저장돼요.' });
+    }
+    setSyncView('busy');
+    return ghWrite(sync.sha, message).then(function (r) {
+      if (r.ok) {
+        sync.sha = (r.data && r.data.content && r.data.content.sha) || sync.sha;
+        sync.lastError = '';
+        sync.lastSyncAt = nowIso();
+        persistSync();
+        setSyncView('ok');
+        return { ok: true };
+      }
+      if (r.status === 409 || r.status === 422) {
+        return ghRead().then(function (remote) {
+          sync.sha = remote.sha || '';
+          state.projects = mergeProjects(state.projects, remote.missing ? [] : remote.projects);
+          suppressPush = true;
+          save();
+          suppressPush = false;
+          persistSync();
+          renderAll();
+          return ghWrite(sync.sha, (message || '프로젝트 노트 동기화') + ' (충돌 병합)');
+        }).then(function (r2) {
+          if (r2 && r2.ok) {
+            sync.sha = (r2.data && r2.data.content && r2.data.content.sha) || sync.sha;
+            sync.lastError = '';
+            sync.lastSyncAt = nowIso();
+            persistSync();
+            setSyncView('ok');
+            return { ok: true, merged: true };
+          }
+          throw new Error(syncErrorText(r2 ? r2.status : 0));
+        });
+      }
+      throw new Error(syncErrorText(r.status));
+    }).catch(function (err) {
+      var msg = (err && err.message) ? err.message : '동기화하지 못했어요.';
+      sync.lastError = msg;
+      persistSync();
+      setSyncView('err');
+      return { ok: false, error: msg };
+    });
+  }
+
+  function pullMerge(opts) {
+    opts = opts || {};
+    if (!syncReady()) {
+      return Promise.resolve({ ok: false, skipped: true, error: '동기화가 설정되지 않았어요.' });
+    }
+    if (!opts.force && !navigator.onLine) {
+      setSyncView('offline');
+      return Promise.resolve({ ok: false, skipped: true, error: '오프라인 상태예요.' });
+    }
+    setSyncView('busy');
+    return ghRead().then(function (remote) {
+      sync.sha = remote.sha || '';
+      if (remote.missing) {
+        sync.lastError = '';
+        sync.lastSyncAt = nowIso();
+        persistSync();
+        if (!state.projects.length) {
+          setSyncView('ok');
+          return { ok: true, count: 0, created: false };
+        }
+        return pushNow('프로젝트 노트 첫 저장').then(function (res) {
+          if (res && res.ok) { return { ok: true, count: state.projects.length, created: true }; }
+          return { ok: false, error: (res && res.error) || 'GitHub에 저장하지 못했어요.' };
+        });
+      }
+      var remoteSig = signature(remote.projects);
+      var merged = mergeProjects(state.projects, remote.projects);
+      state.projects = merged;
+      var mergedSig = signature(merged);
+      suppressPush = true;
+      save();
+      suppressPush = false;
+      sync.lastError = '';
+      sync.lastSyncAt = nowIso();
+      persistSync();
+      renderAll();
+      if (mergedSig !== remoteSig) {
+        return pushNow('다른 기기 변경 합치기').then(function (res) {
+          if (res && res.ok) { return { ok: true, count: merged.length, merged: true }; }
+          return { ok: false, error: (res && res.error) || 'GitHub에 저장하지 못했어요.' };
+        });
+      }
+      setSyncView('ok');
+      return { ok: true, count: merged.length, merged: false };
+    }).catch(function (err) {
+      var msg = (err && err.message) ? err.message : '동기화하지 못했어요.';
+      sync.lastError = msg;
+      persistSync();
+      setSyncView('err');
+      return { ok: false, error: msg };
+    });
+  }
+
+  function queuePush() {
+    if (!syncReady()) { return; }
+    if (syncTimer) { clearTimeout(syncTimer); }
+    setSyncView(navigator.onLine ? 'busy' : 'offline');
+    syncTimer = setTimeout(function () {
+      syncTimer = null;
+      if (!navigator.onLine) { setSyncView('offline'); return; }
+      if (syncBusy) { syncQueued = true; return; }
+      syncBusy = true;
+      pushNow('프로젝트 노트 저장').then(function (res) {
+        syncBusy = false;
+        if (res && res.ok) { syncErrorNoticed = false; }
+        else if (res && res.error && !syncErrorNoticed) {
+          syncErrorNoticed = true;
+          toast('동기화하지 못했어요 · ' + res.error);
+        }
+        if (syncQueued) { syncQueued = false; queuePush(); }
+      }, function () { syncBusy = false; });
+    }, 1500);
+  }
+
+  /* sync settings sheet */
+  function syncMsg(text, kind) {
+    var el = $('syMsg');
+    if (!el) { return; }
+    el.textContent = text || '';
+    el.className = 'sync-msg' + (kind ? ' is-' + kind : '');
+    el.hidden = !text;
+  }
+  function openSyncSheet() {
+    $('syToken').value = sync.token;
+    $('syToken').type = 'password';
+    $('syEye').textContent = '보기';
+    $('syEye').setAttribute('aria-label', '토큰 보기');
+    $('syRepo').value = sync.repo || SYNC_DEFAULT_REPO;
+    $('syBranch').value = sync.branch || SYNC_DEFAULT_BRANCH;
+    $('syPath').value = sync.path || SYNC_DEFAULT_PATH;
+    var info = '';
+    if (!syncReady()) {
+      info = '토큰을 넣고 연결하면 이 기기의 내용이 GitHub 비공개 저장소로 자동 저장돼요.';
+    } else if (sync.lastError) {
+      info = sync.lastError;
+    } else if (sync.lastSyncAt) {
+      info = '마지막 동기화 · ' + relTime(new Date(sync.lastSyncAt)) + ' (' + dayLabel(new Date(sync.lastSyncAt)) + ' ' + timeLabel(new Date(sync.lastSyncAt)) + ')';
+    } else {
+      info = '아직 한 번도 동기화하지 않았어요. 아래 버튼을 눌러 주세요.';
+    }
+    syncMsg(info, (syncReady() && sync.lastError) ? 'err' : '');
+    openSheet($('ovSync'));
+  }
+  function readSyncForm() {
+    var token = $('syToken').value.trim();
+    var repo = $('syRepo').value.trim();
+    var branch = $('syBranch').value.trim();
+    var path = $('syPath').value.trim();
+    if (!token) { return { error: 'GitHub 토큰을 입력해 주세요.' }; }
+    if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repo)) {
+      return { error: '저장소는 owner/repo 형식으로 적어 주세요. 예: ' + SYNC_DEFAULT_REPO };
+    }
+    if (!branch) { branch = SYNC_DEFAULT_BRANCH; }
+    if (!path) { path = SYNC_DEFAULT_PATH; }
+    return { token: token, repo: repo, branch: branch, path: path.replace(/^\/+/, '') };
+  }
+  function connectAndSync() {
+    var form = readSyncForm();
+    if (form.error) {
+      syncMsg(form.error, 'err');
+      return;
+    }
+    var targetChanged = (sync.repo !== form.repo || sync.branch !== form.branch || sync.path !== form.path);
+    sync.token = form.token;
+    sync.repo = form.repo;
+    sync.branch = form.branch;
+    sync.path = form.path;
+    if (targetChanged) { sync.sha = ''; }
+    sync.lastError = '';
+    persistSync();
+    setSyncView('busy');
+    syncMsg('GitHub와 연결을 확인하는 중…', '');
+    pullMerge({ force: true }).then(function (res) {
+      if (res && res.ok) {
+        var n = res.count || state.projects.length;
+        var tail = res.created ? ' · GitHub에 처음 저장했어요' : (res.merged ? ' · 양쪽 내용을 합쳐 저장했어요' : '');
+        syncMsg('연결됐어요 · 프로젝트 ' + n + '개' + tail, 'ok');
+        refreshSyncView();
+        toast('동기화를 연결했어요');
+      } else {
+        syncMsg((res && res.error) || '연결하지 못했어요.', 'err');
+      }
+    });
+  }
+  function disconnectSync() {
+    askConfirm({
+      title: '동기화를 해제할까요?',
+      text: '이 기기에 저장된 GitHub 토큰을 지웁니다. 프로젝트는 이 기기와 GitHub 양쪽에 그대로 남아요.',
+      okLabel: '연결 해제',
+      onOk: function () {
+        sync.token = '';
+        sync.sha = '';
+        sync.lastSyncAt = '';
+        sync.lastError = '';
+        if (syncTimer) { clearTimeout(syncTimer); syncTimer = null; }
+        persistSync();
+        setSyncView('off');
+        syncMsg('연결을 해제했어요. 프로젝트는 이 기기에 그대로 있어요.', '');
+        toast('동기화를 해제했어요');
+      }
+    });
   }
 
   /* ---------- overlays ---------- */
@@ -1825,6 +2357,8 @@ input[type="date"]{font-size:15px}
         text: '지금 ' + prev.length + '개 프로젝트가 파일의 ' + incoming.length + '개로 바뀝니다. 가져온 직후에는 실행 취소할 수 있어요.',
         okLabel: '가져오기',
         onOk: function () {
+          for (var i = 0; i < state.projects.length; i++) { markDeleted(state.projects[i].id); }
+          for (var j = 0; j < incoming.length; j++) { unmarkDeleted(incoming[j].id); }
           state.projects = incoming;
           ui.openId = null;
           ui.editUpdateId = null;
@@ -1837,6 +2371,7 @@ input[type="date"]{font-size:15px}
             label: '실행 취소',
             run: function () {
               state.projects = prev;
+              for (var i = 0; i < prev.length; i++) { unmarkDeleted(prev[i].id); }
               save();
               renderAll();
             }
@@ -1858,6 +2393,7 @@ input[type="date"]{font-size:15px}
       okLabel: '모두 지우기',
       danger: true,
       onOk: function () {
+        for (var i = 0; i < state.projects.length; i++) { markDeleted(state.projects[i].id); }
         state.projects = [];
         ui.openId = null;
         ui.editUpdateId = null;
@@ -1867,6 +2403,7 @@ input[type="date"]{font-size:15px}
           label: '실행 취소',
           run: function () {
             state.projects = prev;
+            for (var j = 0; j < prev.length; j++) { unmarkDeleted(prev[j].id); }
             save();
             renderAll();
           }
@@ -1930,6 +2467,21 @@ input[type="date"]{font-size:15px}
       openSheet($('ovBrief'));
     });
     $('btnMore').addEventListener('click', function () { openSheet($('ovMenu')); });
+    $('syncChip').addEventListener('click', openSyncSheet);
+
+    /* sync sheet */
+    $('syncForm').addEventListener('submit', function (e) {
+      e.preventDefault();
+      connectAndSync();
+    });
+    $('syEye').addEventListener('click', function () {
+      var input = $('syToken');
+      var showing = input.type === 'text';
+      input.type = showing ? 'password' : 'text';
+      this.textContent = showing ? '보기' : '가리기';
+      this.setAttribute('aria-label', showing ? '토큰 보기' : '토큰 가리기');
+    });
+    $('syDisconnect').addEventListener('click', disconnectSync);
 
     /* tabs */
     $('tabActive').addEventListener('click', function () { ui.tab = ACTIVE; renderAll(); });
@@ -1993,6 +2545,7 @@ input[type="date"]{font-size:15px}
           }
           if (index === -1) { return; }
           var removed = state.projects.splice(index, 1)[0];
+          markDeleted(id);
           ui.openId = null;
           ui.editUpdateId = null;
           closeSheet($('ovDetail'));
@@ -2002,6 +2555,7 @@ input[type="date"]{font-size:15px}
             label: '실행 취소',
             run: function () {
               state.projects.splice(Math.min(index, state.projects.length), 0, removed);
+              unmarkDeleted(id);
               save();
               renderAll();
             }
@@ -2176,6 +2730,8 @@ input[type="date"]{font-size:15px}
         exportCsv();
       } else if (act === 'import') {
         $('fileInput').click();
+      } else if (act === 'sync') {
+        setTimeout(openSyncSheet, 140);
       } else if (act === 'sample') {
         insertSample();
       } else if (act === 'about') {
@@ -2229,7 +2785,7 @@ input[type="date"]{font-size:15px}
         if (overlay) { closeSheet(overlay); }
       });
     }
-    var overlays = ['ovBrief', 'ovDetail', 'ovForm', 'ovMenu', 'ovConfirm'];
+    var overlays = ['ovBrief', 'ovDetail', 'ovForm', 'ovMenu', 'ovSync', 'ovConfirm'];
     for (var k = 0; k < overlays.length; k++) {
       (function (id) {
         var node = $(id);
@@ -2251,6 +2807,7 @@ input[type="date"]{font-size:15px}
   /* ---------- boot ---------- */
   function tryFetchSeed() {
     if (!window.fetch || location.protocol === 'file:') { return; }
+    if (syncReady()) { return; }
     fetch('projects-data.json', { cache: 'no-store' })
       .then(function (res) { return res.ok ? res.json() : null; })
       .then(function (data) {
@@ -2284,9 +2841,26 @@ input[type="date"]{font-size:15px}
       window.visualViewport.addEventListener('scroll', syncAppHeight);
     }
     bindEvents();
+    loadSyncConfig();
     var hadData = load();
     renderAll();
-    if (!hadData) { tryFetchSeed(); }
+    refreshSyncView();
+    if (syncReady()) {
+      if (navigator.onLine) { pullMerge(); } else { setSyncView('offline'); }
+    } else if (!hadData) {
+      tryFetchSeed();
+    }
+    window.addEventListener('online', function () {
+      if (syncReady()) { pullMerge(); } else { refreshSyncView(); }
+    });
+    window.addEventListener('offline', function () {
+      if (syncReady()) { setSyncView('offline'); }
+    });
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState !== 'visible' || !syncReady() || !navigator.onLine) { return; }
+      var last = sync.lastSyncAt ? new Date(sync.lastSyncAt).getTime() : 0;
+      if (Date.now() - last > 60000 && !syncBusy && !syncTimer) { pullMerge(); }
+    });
   }
 
   if (document.readyState === 'loading') {
