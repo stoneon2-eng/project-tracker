@@ -346,8 +346,11 @@ svg{display:block}
 .fab:active{transform:scale(.94)}
 .fab svg{width:26px;height:26px}
 /* ---------- overlays & sheets ---------- */
+/* 보이는 화면(visualViewport)에 정확히 붙는다. 키보드가 올라오면 안드로이드 크롬은
+   레이아웃 뷰포트는 그대로 두고 visualViewport만 줄이고 위로 밀기 때문에
+   offsetTop(--app-top)까지 반영해야 시트 아래로 배경이 비치지 않는다. */
 .overlay{
-  position:fixed;top:0;left:0;right:0;height:var(--app-h, 100%);z-index:60;
+  position:fixed;left:0;right:0;top:var(--app-top, 0px);height:var(--app-h, 100%);z-index:60;
   display:flex;align-items:flex-end;justify-content:center;
   background:rgba(10,14,22,.46);opacity:0;transition:opacity .2s ease;
 }
@@ -362,6 +365,8 @@ svg{display:block}
 }
 .overlay.open .sheet{transform:none;opacity:1}
 .sheet.tall{height:92%}
+/* 키보드가 올라온 동안 폼 시트는 보이는 화면을 꽉 채운다 — 시트·딤 배경 아래로 페이지가 새지 않게 */
+body.kb-open #ovForm .sheet{height:100%;max-height:100%}
 @media (min-width:720px){
   .overlay{align-items:center;padding:24px}
   .sheet{border-radius:24px;max-height:86%}
@@ -2833,13 +2838,34 @@ input[type="date"]{font-size:15px}
       .catch(function () { /* 파일이 없으면 그냥 빈 상태 */ });
   }
 
+  var viewCache = { h: -1, top: -1, kb: false };
   function syncAppHeight() {
     var vv = window.visualViewport;
     var h = vv && vv.height ? vv.height : window.innerHeight;
     if (!h) { return; }
-    try {
-      document.documentElement.style.setProperty('--app-h', Math.round(h) + 'px');
-    } catch (e) { /* older engines */ }
+    var top = (vv && typeof vv.offsetTop === 'number') ? vv.offsetTop : 0;
+    var layoutH = window.innerHeight || document.documentElement.clientHeight || h;
+    var root = document.documentElement;
+    var nH = Math.ceil(h), nTop = Math.floor(top);
+    if (nH !== viewCache.h) {
+      try { root.style.setProperty('--app-h', nH + 'px'); } catch (e) { /* older engines */ }
+      viewCache.h = nH;
+    }
+    /* 오버레이를 '지금 보이는 영역'에 붙인다. top은 내림·height는 올림 해서
+       아래로 1px도 비지 않게 하고(넘치는 쪽은 키보드에 가린다). */
+    if (nTop !== viewCache.top) {
+      try { root.style.setProperty('--app-top', nTop + 'px'); } catch (e) { /* older engines */ }
+      viewCache.top = nTop;
+    }
+    /* 키보드가 visualViewport만 줄인 상태(안드로이드 크롬 기본)인지 */
+    var kbOpen = (layoutH - h) > 120;
+    if (kbOpen !== viewCache.kb) {
+      viewCache.kb = kbOpen;
+      if (document.body) {
+        if (kbOpen) { document.body.classList.add('kb-open'); }
+        else { document.body.classList.remove('kb-open'); }
+      }
+    }
   }
 
   function init() {
@@ -2851,6 +2877,8 @@ input[type="date"]{font-size:15px}
       window.visualViewport.addEventListener('resize', syncAppHeight);
       window.visualViewport.addEventListener('scroll', syncAppHeight);
     }
+    /* 주소창 접힘·키보드 애니메이션처럼 연속으로 바뀌는 동안에도 따라간다 */
+    window.addEventListener('scroll', syncAppHeight, { passive: true });
     bindEvents();
     loadSyncConfig();
     var hadData = load();
