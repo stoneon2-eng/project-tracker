@@ -372,7 +372,12 @@ body.kb-open #ovForm .sheet{height:100%;max-height:100%}
   .sheet{border-radius:24px;max-height:86%}
   .sheet.tall{height:86%}
 }
-.sheet-grip{width:38px;height:4px;border-radius:99px;background:var(--line-strong);margin:8px auto 0;flex:0 0 auto}
+.sheet-grip{width:38px;height:4px;border-radius:99px;background:var(--line-strong);margin:8px auto 0;flex:0 0 auto;position:relative}
+/* 손잡이는 보이는 것보다 넓게 잡히도록 (120x38px 터치 영역) */
+.sheet-grip::after{content:"";position:absolute;left:50%;top:50%;width:120px;height:38px;transform:translate(-50%,-50%)}
+/* 손으로 쓸어내려 닫기 — 끄는 동안엔 전환을 끄고 손가락을 그대로 따라간다 */
+.sheet.dragging{transition:none !important;will-change:transform}
+body.sheet-dragging{user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
 .sheet-head{padding:10px 20px 2px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex:0 0 auto}
 .sheet-head h2{font-size:17px;font-weight:800;letter-spacing:-.025em}
 .sheet-body{
@@ -1645,6 +1650,7 @@ input[type="date"]{font-size:15px}
   /* ---------- overlays ---------- */
   function openSheet(node) {
     if (overlayStack.indexOf(node) !== -1) { return; }
+    resetSheetDragStyle(node);
     node.hidden = false;
     void node.offsetWidth;
     node.classList.add('open');
@@ -1668,6 +1674,16 @@ input[type="date"]{font-size:15px}
     if (i === -1) { return; }
     overlayStack.splice(i, 1);
     node.classList.remove('open');
+    /* 쓸어내리는 중이던 시트는 위로 되돌아 올라가지 않고 아래로 마저 사라진다 */
+    var sheet = node.querySelector ? node.querySelector('.sheet') : null;
+    if (sheet && sheet.style.transform) {
+      sheet.classList.remove('dragging');
+      sheet.style.transition = 'transform .2s cubic-bezier(.3,.9,.4,1), opacity .18s ease-out';
+      sheet.style.transform = 'translateY(110%)';
+      sheet.style.opacity = '0';
+      node.style.transition = 'background-color .2s ease-out';
+      node.style.backgroundColor = 'rgba(10,14,22,0)';
+    }
     hideNode(node);
     forgetOverlay(node);
     if (!overlayStack.length) { document.body.classList.remove('no-scroll'); }
@@ -1688,10 +1704,187 @@ input[type="date"]{font-size:15px}
     pushed = Math.max(0, pushed - 1);
     var top = overlayStack.pop();
     top.classList.remove('open');
+    var topSheet = top.querySelector ? top.querySelector('.sheet') : null;
+    if (topSheet && topSheet.style.transform) {
+      topSheet.classList.remove('dragging');
+      topSheet.style.transition = 'transform .2s cubic-bezier(.3,.9,.4,1), opacity .18s ease-out';
+      topSheet.style.transform = 'translateY(110%)';
+      topSheet.style.opacity = '0';
+      top.style.transition = 'background-color .2s ease-out';
+      top.style.backgroundColor = 'rgba(10,14,22,0)';
+    }
     hideNode(top);
     forgetOverlay(top);
     if (!overlayStack.length) { document.body.classList.remove('no-scroll'); }
   });
+
+  /* ---------- 시트를 손으로 쓸어내려 닫기 ---------- */
+  var SHEET_SLOP = 8;        /* 이만큼 움직이기 전에는 탭으로 본다 */
+  var sheetDrag = null;
+  var swallowClickUntil = 0;
+  function nowMs() { return (window.performance && performance.now) ? performance.now() : Date.now(); }
+
+  function resetSheetDragStyle(node) {
+    if (!node || !node.querySelector) { return; }
+    var sheet = node.querySelector('.sheet');
+    if (sheet) {
+      sheet.classList.remove('dragging');
+      sheet.style.transition = '';
+      sheet.style.transform = '';
+      sheet.style.opacity = '';
+    }
+    node.style.transition = '';
+    node.style.backgroundColor = '';
+    document.body.classList.remove('sheet-dragging');
+  }
+
+  /* target에서 시트까지 올라가며 실제로 스크롤되는 상자(.sheet-body·.form 등)를 찾는다 */
+  function scrollBoxOf(target, sheet) {
+    var el = target && target.nodeType === 1 ? target : null;
+    while (el && el !== sheet) {
+      if (el.scrollHeight > el.clientHeight + 1) {
+        var oy = '';
+        try { oy = getComputedStyle(el).overflowY; } catch (e) { oy = ''; }
+        if (oy === 'auto' || oy === 'scroll' || oy === 'overlay') { return el; }
+      }
+      el = el.parentElement;
+    }
+    return null;
+  }
+
+  function isDragHandle(target, sheet) {
+    var el = target && target.closest ? target.closest('.sheet-grip, .sheet-grab, .sheet-head, .d-top') : null;
+    return !!(el && sheet.contains(el));
+  }
+
+  function sheetTouchStart(e, node) {
+    sheetDrag = null;
+    if (overlayStack.indexOf(node) === -1) { return; }
+    if (!e.touches || e.touches.length !== 1) { return; }
+    var sheet = node.querySelector('.sheet');
+    if (!sheet) { return; }
+    var target = e.target;
+    /* 입력칸·텍스트 편집 위에서는 끌지 않는다 (커서·선택 방해 금지) */
+    if (target && target.closest && target.closest('input, textarea, select, [contenteditable="true"]')) { return; }
+    var handle = isDragHandle(target, sheet);
+    var scroller = handle ? null : scrollBoxOf(target, sheet);
+    if (!handle && scroller && scroller.scrollTop > 0) { return; }   /* 본문 스크롤 중 */
+    var t = e.touches[0];
+    var now = nowMs();
+    sheetDrag = {
+      node: node, sheet: sheet,
+      startX: t.clientX, startY: t.clientY,
+      lastY: t.clientY, lastT: now,
+      vy: 0, dy: 0, h: 0,
+      engaged: false, handle: handle, scroller: scroller
+    };
+  }
+
+  function sheetTouchMove(e, node) {
+    var st = sheetDrag;
+    if (!st || st.node !== node) { return; }
+    if (!e.touches || e.touches.length !== 1) {
+      /* 두 번째 손가락 등으로 흐름이 끊기면 시트가 중간에 멈춰 있지 않게 되돌린다 */
+      sheetDrag = null;
+      if (st.engaged) { settleSheetDrag(st, false); }
+      return;
+    }
+    var t = e.touches[0];
+    if (!st.engaged) {
+      var dx = t.clientX - st.startX;
+      var dy = t.clientY - st.startY;
+      if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > SHEET_SLOP) { sheetDrag = null; return; }
+      if (dy < SHEET_SLOP) {
+        if (dy < -SHEET_SLOP && !st.handle) { sheetDrag = null; }   /* 위로 = 본문 스크롤 */
+        return;
+      }
+      if (st.scroller && st.scroller.scrollTop > 0) { sheetDrag = null; return; }
+      st.engaged = true;
+      st.h = st.sheet.offsetHeight || 400;
+      st.sheet.classList.add('dragging');
+      document.body.classList.add('sheet-dragging');
+    }
+    if (e.cancelable) { e.preventDefault(); }   /* 끄는 동안은 화면이 같이 스크롤되지 않는다 */
+    var y = t.clientY - st.startY;
+    if (y < 0) { y = 0; }
+    var now = nowMs();
+    var dt = now - st.lastT;
+    if (dt > 0) {
+      var v = (t.clientY - st.lastY) / dt;
+      st.vy = st.vy * 0.6 + v * 0.4;    /* 손가락 떨림 완화 */
+      st.lastY = t.clientY;
+      st.lastT = now;
+    }
+    st.dy = y;
+    st.sheet.style.transform = 'translateY(' + y + 'px)';
+    st.sheet.style.opacity = String(Math.max(0.3, 1 - y / (st.h * 2.4)));
+    var dim = 0.46 * Math.max(0, 1 - y / (st.h * 0.85));
+    node.style.backgroundColor = 'rgba(10,14,22,' + dim.toFixed(3) + ')';
+  }
+
+  function settleSheetDrag(st, shouldClose) {
+    var node = st.node;
+    document.body.classList.remove('sheet-dragging');
+    st.sheet.classList.remove('dragging');
+    var h = st.h || st.sheet.offsetHeight || 400;
+    if (shouldClose) {
+      st.sheet.style.transition = 'transform .2s cubic-bezier(.3,.9,.4,1), opacity .18s ease-out';
+      st.sheet.style.transform = 'translateY(' + (h + 40) + 'px)';
+      st.sheet.style.opacity = '0';
+      node.style.transition = 'background-color .18s ease-out';
+      node.style.backgroundColor = 'rgba(10,14,22,0)';
+      setTimeout(function () { closeSheet(node); }, 160);
+    } else {
+      st.sheet.style.transition = 'transform .3s cubic-bezier(.2,.85,.25,1), opacity .2s ease';
+      st.sheet.style.transform = 'translateY(0px)';
+      st.sheet.style.opacity = '1';
+      node.style.transition = 'background-color .25s ease-out';
+      node.style.backgroundColor = '';
+      var sheet = st.sheet;
+      setTimeout(function () {
+        if (overlayStack.indexOf(node) === -1) { return; }
+        if (sheet.style.transform !== 'translateY(0px)') { return; }   /* 새로 끌기 시작했으면 그대로 */
+        sheet.style.transition = '';
+        sheet.style.transform = '';
+        sheet.style.opacity = '';
+        node.style.transition = '';
+      }, 320);
+    }
+  }
+
+  function sheetTouchEnd(e, node) {
+    var st = sheetDrag;
+    if (!st || st.node !== node) { return; }
+    sheetDrag = null;
+    if (!st.engaged) { return; }
+    var h = st.h || st.sheet.offsetHeight || 400;
+    var flick = st.vy > 0.5 && st.dy > 24;    /* px/ms — 빠르게 튕기기 */
+    if (st.dy > SHEET_SLOP) {
+      /* 끌고 난 뒤 손을 뗀 것이 버튼 누름으로 새지 않게 */
+      swallowClickUntil = nowMs() + 350;
+    }
+    settleSheetDrag(st, st.dy > Math.min(150, h * 0.3) || flick);
+  }
+
+  function initSheetDrag() {
+    var ids = ['ovBrief', 'ovDetail', 'ovForm', 'ovMenu', 'ovSync', 'ovConfirm'];
+    for (var i = 0; i < ids.length; i++) {
+      (function (node) {
+        if (!node) { return; }
+        node.addEventListener('touchstart', function (e) { sheetTouchStart(e, node); }, { passive: true });
+        node.addEventListener('touchmove', function (e) { sheetTouchMove(e, node); }, { passive: false });
+        node.addEventListener('touchend', function (e) { sheetTouchEnd(e, node); });
+        node.addEventListener('touchcancel', function (e) { sheetTouchEnd(e, node); });
+      })($(ids[i]));
+    }
+    /* 끌고 뗀 직후의 클릭 한 번만 삼킨다 */
+    document.addEventListener('click', function (e) {
+      if (!swallowClickUntil || nowMs() > swallowClickUntil) { return; }
+      swallowClickUntil = 0;
+      e.preventDefault();
+      e.stopPropagation();
+    }, true);
+  }
 
   /* ---------- rendering ---------- */
   function renderAll() {
@@ -2880,6 +3073,7 @@ input[type="date"]{font-size:15px}
     /* 주소창 접힘·키보드 애니메이션처럼 연속으로 바뀌는 동안에도 따라간다 */
     window.addEventListener('scroll', syncAppHeight, { passive: true });
     bindEvents();
+    initSheetDrag();
     loadSyncConfig();
     var hadData = load();
     renderAll();
