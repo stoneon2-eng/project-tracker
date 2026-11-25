@@ -739,7 +739,7 @@ input[type="date"]{font-size:15px}
       <div id="dFields"></div>
       <div class="d-meta" id="dMeta"></div>
       <div class="d-actions">
-        <button class="btn btn-soft" id="dToggle">완료로 표시</button>
+        <button class="btn btn-soft" id="dToggle">완료처리</button>
       </div>
       <div class="d-section-head">
         <h3>업데이트</h3>
@@ -2057,7 +2057,7 @@ input[type="date"]{font-size:15px}
       '</div>' +
       '<div class="card-foot">' +
         '<button class="mini-btn accent" data-act="quick" data-id="' + esc(p.id) + '">' + ICON.plus + ' 업데이트</button>' +
-        '<button class="mini-btn" data-act="toggle" data-id="' + esc(p.id) + '">' + (isDone ? '다시 진행' : '완료로') + '</button>' +
+        '<button class="mini-btn" data-act="toggle" data-id="' + esc(p.id) + '">' + (isDone ? '다시 진행' : '완료처리') + '</button>' +
       '</div>' +
     '</article>';
   }
@@ -2100,7 +2100,7 @@ input[type="date"]{font-size:15px}
     var meta = '만든 날 ' + fullDateLabel(new Date(p.createdAt));
     if (p.completedAt) { meta += ' · 완료 ' + dayLabel(new Date(p.completedAt)); }
     $('dMeta').textContent = meta;
-    $('dToggle').textContent = p.status === DONE ? '진행 중으로 되돌리기' : '완료로 표시';
+    $('dToggle').textContent = p.status === DONE ? '진행 중으로 되돌리기' : '완료처리';
     $('dCount').textContent = p.updates.length;
     renderTimeline(p);
   }
