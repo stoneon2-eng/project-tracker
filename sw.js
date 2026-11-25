@@ -1,5 +1,5 @@
 /* 프로젝트 노트 - 오프라인 캐시 (network-first, 캐시 폴백) */
-var CACHE = 'project-note-v8';
+var CACHE = 'project-note-v9';
 var ASSETS = ['./', 'index.html', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'];
 
 self.addEventListener('install', function (e) {

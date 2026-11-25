@@ -46,8 +46,6 @@
   --cat-work-soft:#eceafe;
   --cat-personal:#a85a08;
   --cat-personal-soft:#fdf0e2;
-  --cat-shared:#0a7d5a;
-  --cat-shared-soft:#e2f6ee;
   --danger:#d63b3b;
   --danger-solid:#d63b3b;
   --danger-soft:#fdecec;
@@ -89,8 +87,6 @@
     --cat-work-soft:#272449;
     --cat-personal:#f0b877;
     --cat-personal-soft:#382a19;
-    --cat-shared:#7cdcb5;
-    --cat-shared-soft:#123129;
     --danger:#ff8b8b;
     --danger-solid:#b83838;
     --danger-soft:#3a1d1d;
@@ -220,10 +216,6 @@ svg{display:block}
 }
 .fpill.is-on{background:var(--accent-soft);border-color:transparent;color:var(--accent-strong)}
 .fpill.is-on .fcount{background:var(--surface);color:var(--accent-strong)}
-.fpill[data-cat="공유"].is-on{background:var(--cat-shared-soft);color:var(--cat-shared)}
-.fpill[data-cat="공유"].is-on .fcount{background:var(--surface);color:var(--cat-shared)}
-/* 브리핑 구분 필터는 4개(전체·업무·개인·공유)를 390px에 한 줄로 담는다 */
-.brief-filter .fpill{padding:0 9px;gap:4px}
 /* ---------- project cards ---------- */
 .list{display:flex;flex-direction:column;gap:12px}
 .card{
@@ -255,7 +247,6 @@ svg{display:block}
 .cat-badge::before{content:"";width:5px;height:5px;border-radius:50%;background:currentColor;flex:0 0 auto}
 .cat-badge.work{background:var(--cat-work-soft);color:var(--cat-work)}
 .cat-badge.personal{background:var(--cat-personal-soft);color:var(--cat-personal)}
-.cat-badge.shared{background:var(--cat-shared-soft);color:var(--cat-shared)}
 .d-top .cat-badge{padding:4px 10px;border-radius:99px;font-size:11px}
 .card-desc{
   margin-top:7px;font-size:13.5px;color:var(--text-2);line-height:1.5;
@@ -531,7 +522,6 @@ input[type="date"]{font-size:15px}
 .seg{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;border-radius:14px;background:var(--surface-2);border:1px solid var(--line)}
 .seg-btn{height:42px;border-radius:11px;font-size:13.5px;font-weight:700;color:var(--text-2);transition:background .15s ease,color .15s ease,box-shadow .15s ease}
 .seg-btn.is-on{background:var(--surface);color:var(--text);box-shadow:var(--shadow-xs)}
-#fCategory{grid-template-columns:repeat(3,1fr)}
 /* 폼 본문과 함께 스크롤되는 일반 블록 — 입력칸을 절대 가리지 않는다 */
 .form-actions{
   position:static;display:flex;gap:8px;
@@ -594,7 +584,6 @@ input[type="date"]{font-size:15px}
   font-size:10.5px;font-weight:800;font-variant-numeric:tabular-nums;text-align:center;
 }
 .bsection.personal .bsection-count{background:var(--cat-personal-soft);color:var(--cat-personal)}
-.bsection.shared .bsection-count{background:var(--cat-shared-soft);color:var(--cat-shared)}
 .bcard{
   border:1px solid var(--line);border-radius:16px;background:var(--surface);
   box-shadow:var(--shadow-xs);overflow:hidden;
@@ -689,11 +678,10 @@ input[type="date"]{font-size:15px}
     <button class="tab" role="tab" id="tabDone" aria-selected="false" data-tab="완료">완료<span class="tab-count" id="cntDone">0</span></button>
   </div>
 
-  <div class="filterbar" id="catFilter" role="group" aria-label="업무·개인·공유 구분 필터">
+  <div class="filterbar" id="catFilter" role="group" aria-label="업무·개인 구분 필터">
     <button type="button" class="fpill is-on" data-cat="전체" aria-pressed="true">전체<span class="fcount">0</span></button>
     <button type="button" class="fpill" data-cat="업무" aria-pressed="false">업무<span class="fcount">0</span></button>
     <button type="button" class="fpill" data-cat="개인" aria-pressed="false">개인<span class="fcount">0</span></button>
-    <button type="button" class="fpill" data-cat="공유" aria-pressed="false">공유<span class="fcount">0</span></button>
   </div>
 
   <div class="list" id="projectList"></div>
@@ -785,10 +773,9 @@ input[type="date"]{font-size:15px}
     <form class="form" id="projectForm" novalidate>
       <div class="field">
         <span class="label">구분</span>
-        <div class="seg" id="fCategory" role="group" aria-label="업무·개인·공유 구분 선택">
+        <div class="seg" id="fCategory" role="group" aria-label="업무·개인 구분 선택">
           <button type="button" class="seg-btn is-on" data-cat="업무">💼 업무</button>
           <button type="button" class="seg-btn" data-cat="개인">🏠 개인</button>
-          <button type="button" class="seg-btn" data-cat="공유">👥 공유</button>
         </div>
       </div>
       <label class="field">
@@ -950,7 +937,6 @@ input[type="date"]{font-size:15px}
   var DONE = '완료';
   var CAT_WORK = '업무';
   var CAT_PERSONAL = '개인';
-  var CAT_SHARED = '공유';
   var CAT_ALL = '전체';
   var WD = ['일', '월', '화', '수', '목', '금', '토'];
   var DAY = 86400000;
@@ -1109,13 +1095,10 @@ input[type="date"]{font-size:15px}
   function normalizeCategory(value) {
     var s = String(value == null ? '' : value).trim().toLowerCase();
     if (s === '개인' || s === 'personal' || s === 'private' || s === 'home' || s === 'life') { return CAT_PERSONAL; }
-    if (s === '공유' || s === 'shared' || s === 'share' || s === 'team' || s === 'common') { return CAT_SHARED; }
     if (s === '업무' || s === '업무용' || s === 'work' || s === 'business' || s === 'office' || s === 'job') { return CAT_WORK; }
     return CAT_WORK;
   }
-  function catClass(cat) { return cat === CAT_PERSONAL ? 'personal' : (cat === CAT_SHARED ? 'shared' : 'work'); }
-  function catLabel(cat) { return cat === CAT_PERSONAL ? '개인' : (cat === CAT_SHARED ? '공유' : '업무'); }
-  function catEmoji(cat) { return cat === CAT_PERSONAL ? '🏠' : (cat === CAT_SHARED ? '👥' : '💼'); }
+  function catClass(cat) { return cat === CAT_PERSONAL ? 'personal' : 'work'; }
   function normalizeProjects(raw) {
     var list = [];
     if (Array.isArray(raw)) { list = raw; }
@@ -1208,7 +1191,6 @@ input[type="date"]{font-size:15px}
     counts[CAT_ALL] = list.length;
     counts[CAT_WORK] = 0;
     counts[CAT_PERSONAL] = 0;
-    counts[CAT_SHARED] = 0;
     for (var i = 0; i < list.length; i++) {
       var c = list[i].category;
       counts[c] = (counts[c] || 0) + 1;
@@ -2002,9 +1984,9 @@ input[type="date"]{font-size:15px}
   }
   function emptyHtml(tab, total) {
     if (total > 0) {
-      var label = catLabel(ui.cat);
+      var label = ui.cat === CAT_PERSONAL ? '개인' : '업무';
       return '<div class="empty">' +
-        '<div class="empty-emoji" aria-hidden="true">' + catEmoji(ui.cat) + '</div>' +
+        '<div class="empty-emoji" aria-hidden="true">' + (ui.cat === CAT_PERSONAL ? '🏠' : '💼') + '</div>' +
         '<h3>' + label + ' 프로젝트가 없어요</h3>' +
         '<p>' + (tab === ACTIVE ? '진행 중인' : '완료된') + ' 프로젝트 중 ' + label + '으로 표시한 게 아직 없어요.</p>' +
         '<div class="empty-actions">' +
@@ -2228,7 +2210,7 @@ input[type="date"]{font-size:15px}
       var today = todayUpdatesCount(scoped);
       var parts = [];
       if (ui.briefUrgent) { parts.push('3일 안 마감·지난 일정'); }
-      else if (ui.briefCat === CAT_ALL) { parts.push('업무 ' + (counts[CAT_WORK] || 0) + ' · 개인 ' + (counts[CAT_PERSONAL] || 0) + ' · 공유 ' + (counts[CAT_SHARED] || 0)); }
+      else if (ui.briefCat === CAT_ALL) { parts.push('업무 ' + (counts[CAT_WORK] || 0) + ' · 개인 ' + (counts[CAT_PERSONAL] || 0)); }
       if (today) { parts.push('오늘 업데이트 ' + today + '개'); }
       parts.push('완료 ' + doneCount + '개');
       html += '<p class="brief-sub">' + esc(parts.join(' · ')) + '</p>';
@@ -2245,7 +2227,7 @@ input[type="date"]{font-size:15px}
     if (active.length) {
       html += briefFilterHtml(counts);
       if (scoped.length) {
-        var groups = ui.briefCat === CAT_ALL ? [CAT_WORK, CAT_PERSONAL, CAT_SHARED] : [ui.briefCat];
+        var groups = ui.briefCat === CAT_ALL ? [CAT_WORK, CAT_PERSONAL] : [ui.briefCat];
         for (var g = 0; g < groups.length; g++) {
           var groupItems = byCategory(scoped, groups[g]);
           if (!groupItems.length) { continue; }
@@ -2264,7 +2246,7 @@ input[type="date"]{font-size:15px}
           '</div></div>';
       } else {
         html += '<div class="empty"><div class="empty-emoji" aria-hidden="true">' +
-          catEmoji(ui.briefCat) + '</div>' +
+          (ui.briefCat === CAT_PERSONAL ? '🏠' : '💼') + '</div>' +
           '<h3>' + esc(ui.briefCat) + ' 프로젝트가 없어요</h3>' +
           '<p>다른 구분을 보거나 새 프로젝트를 만들어 보세요.</p>' +
           '<div class="empty-actions">' +
@@ -2281,19 +2263,20 @@ input[type="date"]{font-size:15px}
     $('briefBody').innerHTML = html;
   }
   function briefFilterHtml(counts) {
-    var cats = [CAT_ALL, CAT_WORK, CAT_PERSONAL, CAT_SHARED];
+    var cats = [CAT_ALL, CAT_WORK, CAT_PERSONAL];
     var html = '<div class="filterbar brief-filter" role="group" aria-label="브리핑 구분 필터">';
     for (var i = 0; i < cats.length; i++) {
       var on = cats[i] === ui.briefCat;
-      var prefix = cats[i] === CAT_ALL ? '' : catEmoji(cats[i]) + ' ';
+      var prefix = cats[i] === CAT_WORK ? '💼 ' : (cats[i] === CAT_PERSONAL ? '🏠 ' : '');
       html += '<button type="button" class="fpill' + (on ? ' is-on' : '') + '" data-act="bcat" data-cat="' + cats[i] + '" aria-pressed="' + (on ? 'true' : 'false') + '">' +
         prefix + cats[i] + '<span class="fcount">' + (counts[cats[i]] || 0) + '</span></button>';
     }
     return html + '</div>';
   }
   function briefSectionHtml(cat, count) {
-    return '<div class="bsection ' + catClass(cat) + '">' +
-      '<span class="bsection-ico" aria-hidden="true">' + catEmoji(cat) + '</span>' +
+    var isPersonal = cat === CAT_PERSONAL;
+    return '<div class="bsection' + (isPersonal ? ' personal' : '') + '">' +
+      '<span class="bsection-ico" aria-hidden="true">' + (isPersonal ? '🏠' : '💼') + '</span>' +
       '<h3 class="bsection-title">' + esc(cat) + '</h3>' +
       '<span class="bsection-count">' + count + '</span></div>';
   }
@@ -3053,7 +3036,7 @@ input[type="date"]{font-size:15px}
         setTimeout(function () {
           askConfirm({
             title: '프로젝트 노트',
-            text: '적은 내용은 이 기기 브라우저에만 자동 저장되고 밖으로 전송되지 않아요. 프로젝트는 구분을 업무·개인·공유로 나눠 저장하고 목록과 아침 브리핑에서 골라 볼 수 있어요. JSON으로 내보내면 백업하거나 비서에게 보낼 수 있고, 그 파일을 다시 가져오면 그대로 복원돼요. 표(CSV)로 내보내면 지금 보고 있는 목록을 엑셀·한셀에서 바로 열 수 있어요. ☀️ 버튼은 진행 중인 프로젝트를 구분별로 모아 보여 주고, 항목을 누르면 바로 상세로 열려요.',
+            text: '적은 내용은 이 기기 브라우저에만 자동 저장되고 밖으로 전송되지 않아요. 프로젝트는 구분을 업무·개인으로 나눠 저장하고 목록과 아침 브리핑에서 골라 볼 수 있어요. JSON으로 내보내면 백업하거나 비서에게 보낼 수 있고, 그 파일을 다시 가져오면 그대로 복원돼요. 표(CSV)로 내보내면 지금 보고 있는 목록을 엑셀·한셀에서 바로 열 수 있어요. ☀️ 버튼은 진행 중인 프로젝트를 구분별로 모아 보여 주고, 항목을 누르면 바로 상세로 열려요.',
             okLabel: '알겠어요',
             cancel: false
           });
