@@ -277,6 +277,42 @@ svg{display:block}
 .mini-btn:active{transform:scale(.97)}
 .mini-btn svg{width:14px;height:14px}
 .mini-btn.accent{background:var(--accent-soft);color:var(--accent-strong)}
+/* ---------- compact card (접힌 상태: 제목 · D-day · 열기) ---------- */
+.cc-row{
+  display:flex;align-items:center;gap:8px;width:100%;min-height:52px;
+  padding:9px 11px 9px 15px;text-align:left;cursor:pointer;
+}
+.cc-title{
+  flex:1 1 auto;min-width:0;font-size:15px;font-weight:700;letter-spacing:-.025em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.cc-dday{
+  flex:0 0 auto;padding:4px 9px;border-radius:99px;
+  font-size:11.5px;font-weight:800;letter-spacing:-.01em;
+  font-variant-numeric:tabular-nums;white-space:nowrap;
+}
+.cc-dday.late{background:var(--danger-soft);color:var(--danger)}
+.cc-dday.today{background:var(--green-soft);color:var(--green)}
+.cc-dday.soon{background:var(--cat-personal-soft);color:var(--cat-personal)}
+.cc-dday.due{background:var(--accent-soft);color:var(--accent-strong)}
+.cc-dday.done{background:var(--gray-soft);color:var(--gray)}
+.cc-open{
+  flex:0 0 auto;display:inline-flex;align-items:center;gap:2px;
+  height:32px;padding:0 9px 0 11px;border-radius:10px;
+  background:var(--accent-soft);color:var(--accent-strong);
+  font-size:12.5px;font-weight:750;letter-spacing:-.02em;
+  transition:transform .12s ease;
+}
+.cc-open svg{width:13px;height:13px;opacity:.75}
+.cc-row:active .cc-open{transform:scale(.96)}
+.cc-fold{
+  flex:0 0 auto;display:inline-flex;align-items:center;gap:2px;
+  height:26px;padding:0 8px;border-radius:9px;margin-left:2px;
+  background:var(--surface-2);color:var(--text-3);
+  font-size:11px;font-weight:750;letter-spacing:-.01em;
+}
+.cc-fold svg{width:12px;height:12px}
+.card.is-compact.is-done .cc-title{color:var(--text-2)}
 .card.flash{animation:flash 1.1s ease}
 @keyframes flash{0%{box-shadow:0 0 0 0 rgba(47,107,255,.35),var(--shadow-xs)}35%{box-shadow:0 0 0 4px rgba(47,107,255,.16),var(--shadow-xs)}100%{box-shadow:var(--shadow-xs)}}
 /* ---------- serial & tags ---------- */
@@ -909,12 +945,14 @@ input[type="date"]{font-size:15px}
     clock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5l3 1.8"/></svg>',
     plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
     pencil: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4l10-10a2.5 2.5 0 0 0-3.5-3.5L4 16.5V20z"/></svg>',
-    trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg>'
+    trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg>',
+    chevD: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9.5l6 6 6-6"/></svg>',
+    chevU: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 14.5l6-6 6 6"/></svg>'
   };
 
   /* ---------- state ---------- */
   var state = { projects: [] };
-  var ui = { tab: ACTIVE, cat: CAT_ALL, briefCat: CAT_ALL, briefUrgent: false, openId: null, editUpdateId: null, formMode: 'create', formId: null, formStatus: ACTIVE, formCat: CAT_WORK, flashId: null, order: 'desc' };
+  var ui = { tab: ACTIVE, cat: CAT_ALL, briefCat: CAT_ALL, briefUrgent: false, openId: null, editUpdateId: null, formMode: 'create', formId: null, formStatus: ACTIVE, formCat: CAT_WORK, flashId: null, order: 'desc', expanded: {} };
   var overlayStack = [];
   var pushed = 0;
   var pendingBacks = 0;
@@ -1973,7 +2011,28 @@ input[type="date"]{font-size:15px}
       '<div class="empty-actions"><button class="btn btn-ghost sm" data-act="goto-active">진행 중 보기</button></div>' +
       '</div>';
   }
+  /* 리스트는 접힌 카드로 시작한다 — 제목 · D-day · 열기만. 열면 원래 카드가 나온다. */
   function cardHtml(p) {
+    return ui.expanded[p.id] ? fullCardHtml(p) : compactCardHtml(p);
+  }
+  function ddayBadgeHtml(p) {
+    if (p.status === DONE) { return '<span class="cc-dday done">완료</span>'; }
+    var st = deadlineState(p);
+    if (!st) { return ''; }
+    var cls = st.diff < 0 ? 'late' : (st.diff === 0 ? 'today' : (st.diff <= 3 ? 'soon' : 'due'));
+    return '<span class="cc-dday ' + cls + '">' + st.label + '</span>';
+  }
+  function compactCardHtml(p) {
+    var isDone = p.status === DONE;
+    return '<article class="card is-compact' + (isDone ? ' is-done' : '') + (ui.flashId === p.id ? ' flash' : '') + '">' +
+      '<div class="cc-row" role="button" tabindex="0" data-act="expand" data-id="' + esc(p.id) + '" aria-expanded="false" aria-label="' + esc(p.title) + ' 열기">' +
+        '<h2 class="cc-title">' + esc(p.title) + '</h2>' +
+        ddayBadgeHtml(p) +
+        '<span class="cc-open" aria-hidden="true">열기' + ICON.chevD + '</span>' +
+      '</div>' +
+    '</article>';
+  }
+  function fullCardHtml(p) {
     var isDone = p.status === DONE;
     var u = latestOf(p);
     var meta = '업데이트 ' + p.updates.length + '개 · ' + (u ? relTime(new Date(u.createdAt)) : '기록 전');
@@ -1985,6 +2044,7 @@ input[type="date"]{font-size:15px}
           (p.serial ? '<span class="serial">' + esc(p.serial) + '</span>' : '') +
           '<span class="cat-badge ' + catClass(p.category) + '">' + esc(p.category) + '</span>' +
           '<span class="badge ' + (isDone ? 'done' : 'active') + '">' + (isDone ? '✓ 완료' : '진행 중') + '</span>' +
+          '<button class="cc-fold" data-act="collapse" data-id="' + esc(p.id) + '" aria-label="' + esc(p.title) + ' 접기">접기' + ICON.chevU + '</button>' +
         '</div>' +
         '<h2 class="card-title">' + esc(p.title) + '</h2>' +
         (p.plan ? '<p class="card-desc">' + esc(p.plan) + '</p>' : '') +
@@ -2245,6 +2305,27 @@ input[type="date"]{font-size:15px}
   }
 
   /* ---------- actions ---------- */
+  function listCardEl(id) {
+    var cards = $('projectList').children;
+    for (var i = 0; i < cards.length; i++) {
+      var btn = cards[i].querySelector('[data-act="expand"], [data-act="collapse"]');
+      if (btn && btn.getAttribute('data-id') === id) { return cards[i]; }
+    }
+    return null;
+  }
+  function expandCard(id) {
+    if (!findProject(id)) { return; }
+    ui.expanded[id] = true;
+    renderList();
+    var el = listCardEl(id);
+    if (el && el.scrollIntoView) { el.scrollIntoView({ block: 'nearest' }); }
+  }
+  function collapseCard(id) {
+    delete ui.expanded[id];
+    renderList();
+    var el = listCardEl(id);
+    if (el && el.scrollIntoView) { el.scrollIntoView({ block: 'nearest' }); }
+  }
   function openDetail(id, focusComposer) {
     var p = findProject(id);
     if (!p) { return; }
@@ -2712,6 +2793,8 @@ input[type="date"]{font-size:15px}
       var act = target.getAttribute('data-act');
       var id = target.getAttribute('data-id');
       if (act === 'open') { openDetail(id, false); }
+      else if (act === 'expand') { expandCard(id); }
+      else if (act === 'collapse') { collapseCard(id); }
       else if (act === 'quick') { openDetail(id, true); }
       else if (act === 'toggle') { toggleStatus(id); }
       else if (act === 'cat-all') { ui.cat = CAT_ALL; renderAll(); }
@@ -2721,10 +2804,16 @@ input[type="date"]{font-size:15px}
     });
     $('projectList').addEventListener('keydown', function (e) {
       if (e.key !== 'Enter' && e.key !== ' ' && e.key !== 'Spacebar') { return; }
-      var body = e.target.closest ? e.target.closest('.card-body') : null;
-      if (!body) { return; }
+      var hit = e.target.closest ? e.target.closest('[data-act]') : null;
+      if (!hit) { return; }
+      /* 진짜 버튼은 스스로 클릭을 만든다 — 여기서 가로채면 카드 열기가 대신 실행된다 */
+      if (hit.tagName === 'BUTTON') { return; }
       e.preventDefault();
-      openDetail(body.getAttribute('data-id'), false);
+      var act = hit.getAttribute('data-act');
+      var id = hit.getAttribute('data-id');
+      if (act === 'expand') { expandCard(id); }
+      else if (act === 'collapse') { collapseCard(id); }
+      else { openDetail(id, false); }
     });
 
     /* fab */
